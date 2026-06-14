@@ -5,7 +5,7 @@ import {
   Check, Trash2, Eye, FileJson, Send
 } from 'lucide-vue-next'
 import FieldRenderer from './FieldRenderer.vue'
-import type { SchemaField } from './FieldRenderer.vue'
+import type { SchemaField } from '@/types'
 
 interface ToastEvent {
   type: 'success' | 'error' | 'info' | 'warning'
@@ -97,6 +97,7 @@ const isLastStep = computed(() => currentStep.value >= totalSteps.value - 1)
 const isFirstStep = computed(() => currentStep.value <= 0)
 
 const currentStepFields = computed(() => steps.value[currentStep.value]?.fields || [])
+const currentStepFieldsForRenderer = computed(() => currentStepFields.value as never[])
 
 const goToPrevStep = () => {
   if (!isFirstStep.value) {
@@ -107,12 +108,13 @@ const goToPrevStep = () => {
 const goToNextStep = () => {
   if (fieldRendererRef.value) {
     const allFields = flatFields.value
-    const currentFieldKeys = new Set(currentStepFields.value.map(f => f.field))
+    const currentFieldKeys = new Set(currentStepFields.value.map(f => f.name || f.field || ''))
     let stepValid = true
     allFields.forEach(f => {
-      if (currentFieldKeys.has(f.field)) {
-        const valid = fieldRendererRef.value?.errors?.[f.field] === '' ||
-          !fieldRendererRef.value?.errors?.[f.field]
+      const fieldKey = f.name || f.field || ''
+      if (currentFieldKeys.has(fieldKey)) {
+        const valid = fieldRendererRef.value?.errors?.[fieldKey] === '' ||
+          !fieldRendererRef.value?.errors?.[fieldKey]
         if (!valid) stepValid = false
       }
     })
@@ -300,7 +302,7 @@ onUnmounted(() => {
           <div class="step-content" :key="currentStep">
             <FieldRenderer
               ref="fieldRendererRef"
-              :schema="currentStepFields"
+              :schema="currentStepFieldsForRenderer"
               v-model="formData"
             />
             <div v-if="currentStepFields.length === 0" class="step-empty">
